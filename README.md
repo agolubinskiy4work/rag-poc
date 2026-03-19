@@ -53,7 +53,25 @@ specialized indexing (e.g. `pgvector` in Postgres). For a local MVP, Qdrant is a
 1. Ensure local services are running:
    - Ollama (default: `http://localhost:11434`)
    - Qdrant (default: `localhost:6333`)
-2. Use the existing virtual environment and install dependencies:
+2. Start Qdrant with Docker Compose:
+
+```bash
+docker compose up -d qdrant
+```
+
+3. Verify Qdrant is healthy:
+
+```bash
+curl http://localhost:6333/healthz
+```
+
+Expected response:
+
+```json
+{"title":"qdrant - vector search engine"}
+```
+
+4. Use the existing virtual environment and install dependencies:
 
 ```bash
 ./.venv/bin/pip install -r requirements.txt
@@ -72,6 +90,10 @@ Important variables:
 - `QDRANT_COLLECTION`
 - `CHUNK_SIZE`
 - `CHUNK_OVERLAP`
+
+For this Docker Compose setup, if you run the app on your host machine, keep:
+- `QDRANT_HOST=localhost`
+- `QDRANT_PORT=6333`
 
 ## How to run
 
@@ -99,4 +121,31 @@ This starts Streamlit at `http://localhost:8501`.
 - All inference is local via Ollama.
 - Metadata is stored in SQLite (`data/cache/metadata.db`).
 - Vectors are stored in Qdrant.
+- Qdrant data is persisted in the Docker volume `qdrant_storage`.
+
+## Docker Compose quick commands
+
+Start Qdrant:
+
+```bash
+docker compose up -d qdrant
+```
+
+Stop Qdrant:
+
+```bash
+docker compose stop qdrant
+```
+
+Remove Qdrant container (keep data volume):
+
+```bash
+docker compose rm -f qdrant
+```
+
+Remove Qdrant + all persisted vector data:
+
+```bash
+docker compose down -v
+```
 
