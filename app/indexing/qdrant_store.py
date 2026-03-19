@@ -59,12 +59,22 @@ class QdrantStore:
         )
 
     def dense_search(self, query_vector: list[float], limit: int) -> list[dict]:
-        results = self.client.search(
-            collection_name=self.collection,
-            query_vector=query_vector,
-            limit=limit,
-            with_payload=True,
-        )
+        # qdrant-client>=1.17 uses query_points(); older versions exposed search().
+        if hasattr(self.client, "query_points"):
+            response = self.client.query_points(
+                collection_name=self.collection,
+                query=query_vector,
+                limit=limit,
+                with_payload=True,
+            )
+            results = response.points
+        else:
+            results = self.client.search(
+                collection_name=self.collection,
+                query_vector=query_vector,
+                limit=limit,
+                with_payload=True,
+            )
         rows: list[dict] = []
         for point in results:
             payload = point.payload or {}
