@@ -6,6 +6,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 
 from app.shared.schemas import ChunkRecord
+from app.shared.utils import stable_uuid_from_text
 
 
 class QdrantStore:
@@ -26,9 +27,10 @@ class QdrantStore:
     def upsert_chunks(self, chunks: list[ChunkRecord], vectors: list[list[float]]) -> None:
         points: list[qmodels.PointStruct] = []
         for chunk, vector in zip(chunks, vectors, strict=False):
+            point_id = stable_uuid_from_text(chunk.chunk_id)
             points.append(
                 qmodels.PointStruct(
-                    id=chunk.chunk_id,
+                    id=point_id,
                     vector=vector,
                     payload={
                         "doc_id": chunk.doc_id,

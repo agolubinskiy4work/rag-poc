@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import uuid
 from datetime import datetime, timezone
 
 
@@ -19,6 +20,11 @@ def normalize_text(text: str) -> str:
 
 def stable_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8", errors="ignore")).hexdigest()
+
+
+def stable_uuid_from_text(text: str) -> str:
+    """Create a deterministic UUID from arbitrary text."""
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, text))
 
 
 def safe_truncate(text: str, max_len: int = 240) -> str:
