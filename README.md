@@ -1,4 +1,4 @@
-# Local RAG MVP (Ollama + Qdrant + Streamlit)
+# Local RAG MVP (Ollama + Qdrant + FastAPI + Streamlit)
 
 Local-only retrieval-augmented assistant for indexing URLs/files and answering grounded questions with citations.
 
@@ -8,7 +8,8 @@ This project is a minimal, local-only **RAG (Retrieval-Augmented Generation)** p
 
 ### Components
 
-- **Streamlit UI** (`app/ui/streamlit_app.py`): lets you add URLs/upload files, run sync/reindex, and ask questions.
+- **FastAPI backend** (`app/api/main.py`): exposes health, sync, chat, and page-aware chat HTTP endpoints.
+- **Streamlit UI** (`app/ui/streamlit_app.py`): optional UI client that calls the backend over HTTP.
 - **Ingestion pipeline** (`app/ingest/*`): fetches content (URL/file), parses it, cleans it, and splits it into chunks.
 - **Embeddings** (`app/indexing/embeddings.py`): uses **Ollama** to turn each chunk (and each query) into a vector.
 - **Vector store (Qdrant)** (`app/indexing/qdrant_store.py`): stores vectors and performs similarity search.
@@ -90,6 +91,10 @@ Important variables:
 - `QDRANT_COLLECTION`
 - `CHUNK_SIZE`
 - `CHUNK_OVERLAP`
+- `API_HOST` (default: `127.0.0.1`)
+- `API_PORT` (default: `8000`)
+- `API_BASE_URL` (default: `http://127.0.0.1:8000`)
+- `API_CORS_ORIGINS` (default: `http://localhost:8501`)
 
 For this Docker Compose setup, if you run the app on your host machine, keep:
 - `QDRANT_HOST=localhost`
@@ -101,7 +106,60 @@ For this Docker Compose setup, if you run the app on your host machine, keep:
 ./run.sh
 ```
 
-This starts Streamlit at `http://localhost:8501`.
+This starts:
+- FastAPI at `http://127.0.0.1:8000`
+- Streamlit at `http://localhost:8501`
+
+Or run backend only:
+
+```bash
+./.venv/bin/uvicorn app.api.main:app --host 127.0.0.1 --port 8000
+```
+
+## API endpoints (MVP)
+
+- `GET /health`
+- `POST /api/sync`
+- `POST /api/chat`
+- `POST /api/chat/page`
+
+### Example: health
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+### Example: index documents
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/sync \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sources": [
+      {"source_type": "url", "value": "https://example.com"}
+    ]
+  }'
+```
+
+### Example: query indexed knowledge
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is this source about?"}'
+```
+
+### Example: page-aware chat
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/chat/page \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Summarize the current page",
+    "page_url": "https://example.com",
+    "page_html": "<html><body><h1>Example</h1></body></html>"
+  }'
+```
 
 ## How to index documents
 

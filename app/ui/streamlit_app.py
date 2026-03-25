@@ -10,13 +10,17 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
+import requests
 
-from app.generation.answer_builder import build_answer
-from app.indexing.sync_service import SyncService
-from app.retrieval.search import retrieve
 from app.shared.config import SETTINGS
 from app.shared.logging_utils import configure_logging
-from app.shared.schemas import SourceInput
+
+
+def _post_json(path: str, payload: dict) -> dict:
+    base_url = SETTINGS.api_base_url.rstrip("/")
+    response = requests.post(f"{base_url}{path}", json=payload, timeout=120)
+    response.raise_for_status()
+    return response.json()
 
 
 def _parse_urls(raw_text: str) -> list[str]:
@@ -62,28 +66,32 @@ def main() -> None:
 
     if sync_clicked:
         with st.spinner("Running sync..."):
-            source_inputs: list[SourceInput] = []
+            source_inputs: list[dict[str, str | None]] = []
             for url in _parse_urls(raw_urls):
-                source_inputs.append(SourceInput(source_type="url", value=url))
+                source_inputs.append({"source_type": "url", "value": url, "file_name": None})
             for upload in uploads or []:
                 path = _save_uploaded_file(upload)
-                source_inputs.append(
-                    SourceInput(source_type="file", value=str(path), file_name=upload.name)
-                )
+                source_inputs.append({"source_type": "file", "value": str(path), "file_name": upload.name})
 
             if not source_inputs:
                 st.warning("Please provide at least one URL or file to sync.")
             else:
-                service = SyncService()
-                result = service.run_sync(source_inputs)
-                st.success("Sync completed")
-                col1, col2, col3, col4 = st.columns(4)
-                col1.metric("Total", result.total_sources)
-                col2.metric("Indexed", result.indexed_count)
-                col3.metric("Skipped", result.skipped_count)
-                col4.metric("Failed", result.failed_count)
-                for item in result.items:
-                    st.write(f"- **{item.status.upper()}** `{item.source_ref}`: {item.message}")
+                try:
+                    result = _post_json("/api/sync", {"sources": source_inputs})
+                except requests.RequestException as exc:
+                    st.error(f"Sync request failed: {exc}")
+                else:
+                    st.success("Sync completed")
+                    col1, col2, col3, col4 = st.columns(4)
+                    col1.metric("Total", result.get("total_sources", 0))
+                    col2.metric("Indexed", result.get("indexed_count", 0))
+                    col3.metric("Skipped", result.get("skipped_count", 0))
+                    col4.metric("Failed", result.get("failed_count", 0))
+                    for item in result.get("items", []):
+                        st.write(
+                            f"- **{str(item.get('status', 'unknown')).upper()}** "
+                            f"`{item.get('source_ref', '')}`: {item.get('message', '')}"
+                        )
 
     st.divider()
     st.subheader("Chat")
@@ -103,26 +111,30 @@ def main() -> None:
 
         with st.chat_message("assistant"):
             with st.spinner("Retrieving and generating..."):
-                candidates, evidence_ok, reason = retrieve(question)
-                answer_payload = build_answer(question, candidates, evidence_ok, reason)
+                try:
+                    answer_payload = _post_json("/api/chat", {"question": question})
+                except requests.RequestException as exc:
+                    st.error(f"Chat request failed: {exc}")
+                    return
 
-            st.markdown(answer_payload.answer_text)
-            st.markdown(f"**Confidence:** {answer_payload.confidence}")
-            if answer_payload.fallback_used and answer_payload.fallback_reason:
-                st.warning(f"Fallback reason: {answer_payload.fallback_reason}")
+            st.markdown(answer_payload.get("answer_text", ""))
+            st.markdown(f"**Confidence:** {answer_payload.get('confidence', 'Unknown')}")
+            if answer_payload.get("fallback_used") and answer_payload.get("fallback_reason"):
+                st.warning(f"Fallback reason: {answer_payload.get('fallback_reason')}")
 
             st.markdown("### Sources")
-            if not answer_payload.citations:
+            citations = answer_payload.get("citations", [])
+            if not citations:
                 st.write("No sources available.")
-            for citation in answer_payload.citations:
-                st.markdown(f"- **{citation.title}** ({citation.url_or_path})")
-                if citation.section_title:
-                    st.caption(f"Section: {citation.section_title}")
-                st.caption(citation.snippet)
+            for citation in citations:
+                st.markdown(f"- **{citation.get('title', 'Untitled')}** ({citation.get('url_or_path', '')})")
+                if citation.get("section_title"):
+                    st.caption(f"Section: {citation.get('section_title')}")
+                st.caption(citation.get("snippet", ""))
 
             assistant_text = (
-                f"{answer_payload.answer_text}\n\n"
-                f"Confidence: {answer_payload.confidence}"
+                f"{answer_payload.get('answer_text', '')}\n\n"
+                f"Confidence: {answer_payload.get('confidence', 'Unknown')}"
             )
             st.session_state.chat_history.append({"role": "assistant", "content": assistant_text})
 

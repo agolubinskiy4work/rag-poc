@@ -66,5 +66,10 @@ class Settings:
     logs_dir: Path = Path(_get_env("LOGS_DIR", "data/logs"))
     sqlite_path: Path = Path(_get_env("SQLITE_PATH", "data/cache/metadata.db"))
 
+    api_host: str = _get_env("API_HOST", "127.0.0.1")
+    api_port: int = _get_env_int("API_PORT", 8000)
+    api_cors_origins: str = _get_env("API_CORS_ORIGINS", "http://localhost:8501")
+    api_base_url: str = _get_env("API_BASE_URL", "http://127.0.0.1:8000")
+
 
 SETTINGS = Settings()
