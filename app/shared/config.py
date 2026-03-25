@@ -70,6 +70,7 @@ class Settings:
     api_port: int = _get_env_int("API_PORT", 8000)
     api_cors_origins: str = _get_env("API_CORS_ORIGINS", "http://localhost:8501")
     api_base_url: str = _get_env("API_BASE_URL", "http://127.0.0.1:8000")
+    page_html_max_chars: int = _get_env_int("PAGE_HTML_MAX_CHARS", 1500000)
 
 
 SETTINGS = Settings()

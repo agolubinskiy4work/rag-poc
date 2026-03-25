@@ -85,6 +85,7 @@ def _to_chat_response(answer_text: str, confidence: str, fallback_used: bool, fa
                 url_or_path=str(citation.get("url_or_path", "")),
                 section_title=citation.get("section_title"),
                 snippet=str(citation.get("snippet", "")),
+                source_type=citation.get("source_type"),
             )
             for citation in citations
         ],
@@ -111,6 +112,7 @@ def chat(payload: ChatRequest) -> ChatResponse:
                 "url_or_path": c.url_or_path,
                 "section_title": c.section_title,
                 "snippet": c.snippet,
+                "source_type": c.source_type,
             }
             for c in answer.citations
         ],
@@ -137,6 +139,7 @@ def chat_page(payload: ChatPageRequest) -> ChatResponse:
                 "url_or_path": c.url_or_path,
                 "section_title": c.section_title,
                 "snippet": c.snippet,
+                "source_type": c.source_type,
             }
             for c in answer.citations
         ],

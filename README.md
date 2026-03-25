@@ -95,6 +95,7 @@ Important variables:
 - `API_PORT` (default: `8000`)
 - `API_BASE_URL` (default: `http://127.0.0.1:8000`)
 - `API_CORS_ORIGINS` (default: `http://localhost:8501`)
+- `PAGE_HTML_MAX_CHARS` (default: `1500000`, max accepted `page_html` size)
 
 For this Docker Compose setup, if you run the app on your host machine, keep:
 - `QDRANT_HOST=localhost`
@@ -160,6 +161,49 @@ curl -X POST http://127.0.0.1:8000/api/chat/page \
     "page_html": "<html><body><h1>Example</h1></body></html>"
   }'
 ```
+
+The response includes:
+- `answer_text`
+- `confidence`
+- `citations` (with `source_type` like `page` or `index`)
+- optional `fallback_reason`
+
+## Violentmonkey sidebar assistant (Workflow 15)
+
+This repository includes a userscript:
+
+- `userscripts/violentmonkey_sidebar_assistant.user.js`
+
+### Install and run
+
+1. Start backend locally:
+
+```bash
+./.venv/bin/uvicorn app.api.main:app --host 127.0.0.1 --port 8000
+```
+
+2. Install the browser extension **Violentmonkey**.
+3. Import `userscripts/violentmonkey_sidebar_assistant.user.js` as a new userscript.
+4. Edit script config at the top:
+   - `BACKEND_BASE_URL`
+   - `URL_PATTERNS` (list of URL globs where sidebar should appear)
+
+### CORS note (important)
+
+Userscript requests originate from the current web page domain. Add those origins to `API_CORS_ORIGINS` in `.env`, for example:
+
+```env
+API_CORS_ORIGINS=http://localhost:8501,https://example.com,https://your-company.atlassian.net
+```
+
+### What the userscript sends
+
+`POST /api/chat/page` JSON payload:
+- `question`
+- `page_url`
+- `page_html`
+- `page_title` (optional)
+- `timestamp` (optional)
 
 ## How to index documents
 

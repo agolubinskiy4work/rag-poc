@@ -80,6 +80,7 @@ class SourceCitation:
     url_or_path: str
     section_title: str | None
     snippet: str
+    source_type: str | None = None
 
 
 @dataclass

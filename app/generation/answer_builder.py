@@ -23,6 +23,7 @@ def _build_citations(candidates: list[RetrievalCandidate]) -> list[SourceCitatio
                 url_or_path=candidate.url or candidate.title,
                 section_title=candidate.section_title,
                 snippet=safe_truncate(candidate.text, 180),
+                source_type=candidate.source_type,
             )
         )
     return citations

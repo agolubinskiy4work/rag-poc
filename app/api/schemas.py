@@ -45,6 +45,8 @@ class ChatPageRequest(BaseModel):
     question: str
     page_url: str
     page_html: str
+    page_title: str | None = None
+    timestamp: str | None = None
 
 
 class CitationDto(BaseModel):
@@ -52,6 +54,7 @@ class CitationDto(BaseModel):
     url_or_path: str
     section_title: str | None
     snippet: str
+    source_type: str | None = None
 
 
 class ChatResponse(BaseModel):
