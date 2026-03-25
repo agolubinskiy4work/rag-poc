@@ -33,11 +33,18 @@ def _save_uploaded_file(upload) -> Path:
 def main() -> None:
     configure_logging(SETTINGS.logs_dir)
 
-    st.set_page_config(page_title="Local RAG MVP", layout="wide")
-    st.title("Local Knowledge Assistant (MVP)")
+    logo_path = Path(__file__).resolve().parent / "assets" / "rag_icon.png"
+
+    st.set_page_config(page_title="IAM Local RAG", layout="wide")
+    st.title("IAM Local Knowledge Assistant (MVP)")
     st.caption("Local-only RAG with Ollama + Qdrant + Streamlit")
 
     with st.sidebar:
+        if logo_path.exists():
+            _, logo_col, _ = st.columns([1, 2, 1])
+            with logo_col:
+                st.image(str(logo_path), use_container_width=True)
+
         st.subheader("Sources")
         raw_urls = st.text_area("URLs (one per line)", height=120)
         uploads = st.file_uploader(
